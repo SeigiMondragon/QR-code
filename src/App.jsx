@@ -5,6 +5,10 @@ import { ContentTypeTabs } from './components/ContentTypeTabs'
 import { StyleCustomizer } from './components/StyleCustomizer'
 import { PreviewCard } from './components/PreviewCard'
 import { Toast } from './components/Toast'
+import { SaveQRModal } from './components/SaveQRModal'
+import { SavedCodesModal } from './components/SavedCodesModal'
+import { saveQRCode, updateQRCode } from './lib/qr-storage'
+import { getRuneOptionsFromValues, generateQRCodeDataURL } from './lib/qr-export'
 import { Sparkles, SlidersHorizontal } from 'lucide-react'
 
 const defaultValues = {
@@ -32,11 +36,18 @@ function App() {
   const [activeSection, setActiveSection] = useState('pattern')
   const [toast, setToast] = useState({ message: '', type: 'success' })
 
+  // Persistence State
+  const [currentSavedId, setCurrentSavedId] = useState(null)
+  const [currentSavedTitle, setCurrentSavedTitle] = useState('')
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [isSavedCodesModalOpen, setIsSavedCodesModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
   const showToast = useCallback((message, type = 'success') => {
     setToast({ message, type })
     setTimeout(() => {
       setToast({ message: '', type: 'success' })
-    }, 3200)
+    }, 3500)
   }, [])
 
   const handleValuesChange = useCallback((newPartialValues) => {
@@ -68,13 +79,78 @@ function App() {
 
   const handleReset = useCallback(() => {
     setValues(defaultValues)
+    setCurrentSavedId(null)
+    setCurrentSavedTitle('')
     showToast('Reset to default configuration', 'info')
   }, [showToast])
+
+  const handleClearActive = useCallback(() => {
+    setCurrentSavedId(null)
+    setCurrentSavedTitle('')
+    showToast('Unlinked from saved QR code (will save as new copy)', 'info')
+  }, [showToast])
+
+  // Save / Update QR Code workflow
+  const handleSaveSubmit = async ({ title, isUpdate }) => {
+    setIsSaving(true)
+    try {
+      // 1. Generate preview snapshot
+      let previewDataUrl = ''
+      try {
+        const runeOptions = getRuneOptionsFromValues(values)
+        previewDataUrl = await generateQRCodeDataURL(runeOptions, 2)
+      } catch (genErr) {
+        console.warn('Could not generate preview snapshot for upload:', genErr)
+      }
+
+      if (isUpdate && currentSavedId) {
+        await updateQRCode(currentSavedId, {
+          title,
+          values,
+          previewDataUrl,
+        })
+        setCurrentSavedTitle(title)
+        showToast(`Updated "${title}" in cloud!`, 'success')
+      } else {
+        const saved = await saveQRCode({
+          title,
+          values,
+          previewDataUrl,
+        })
+        setCurrentSavedId(saved.id)
+        setCurrentSavedTitle(title)
+        showToast(`Saved "${title}" to cloud!`, 'success')
+      }
+      setIsSaveModalOpen(false)
+    } catch (err) {
+      console.error(err)
+      showToast(err.message || 'Failed to save QR code', 'error')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Load saved QR Code into Studio for re-editing
+  const handleLoadSavedCode = (item) => {
+    if (!item?.values) return
+    setValues({
+      ...defaultValues,
+      ...item.values,
+    })
+    setCurrentSavedId(item.id)
+    setCurrentSavedTitle(item.title || 'Untitled QR')
+    showToast(`Loaded "${item.title || 'QR Code'}" into studio for editing`, 'success')
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary/10 selection:text-primary">
       {/* App Header */}
-      <Header onReset={handleReset} />
+      <Header
+        onReset={handleReset}
+        onOpenSaved={() => setIsSavedCodesModalOpen(true)}
+        activeTitle={currentSavedTitle}
+        onClearActive={handleClearActive}
+      />
 
       {/* Main Studio Container */}
       <main className="flex-1 mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -89,7 +165,7 @@ function App() {
               Create Custom QR Codes
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Personalize patterns, gradients, frames, and logos with instant high-resolution downloads.
+              Personalize patterns, gradients, frames, and logos with instant cloud save and high-resolution downloads.
             </p>
           </div>
         </div>
@@ -149,6 +225,9 @@ function App() {
           <PreviewCard
             values={values}
             onToast={showToast}
+            onOpenSaveModal={() => setIsSaveModalOpen(true)}
+            currentSavedId={currentSavedId}
+            currentSavedTitle={currentSavedTitle}
           />
         </div>
       </main>
@@ -158,7 +237,7 @@ function App() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>QR Craft — High-performance vector QR code generator.</p>
           <p className="font-mono text-[11px] text-muted-foreground/80">
-            Powered by Rune & React 19
+            Powered by Rune, Cloudinary, Firebase & React 19
           </p>
         </div>
       </footer>
@@ -168,6 +247,26 @@ function App() {
         message={toast.message}
         type={toast.type}
         onClose={() => setToast({ message: '', type: 'success' })}
+      />
+
+      {/* Save / Update QR Code Modal */}
+      <SaveQRModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        onSave={handleSaveSubmit}
+        currentId={currentSavedId}
+        currentTitle={currentSavedTitle}
+        values={values}
+        isSaving={isSaving}
+      />
+
+      {/* Saved QR Codes Browser Modal */}
+      <SavedCodesModal
+        isOpen={isSavedCodesModalOpen}
+        onClose={() => setIsSavedCodesModalOpen(false)}
+        onLoadCode={handleLoadSavedCode}
+        onToast={showToast}
+        activeId={currentSavedId}
       />
     </div>
   )

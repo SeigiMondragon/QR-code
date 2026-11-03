@@ -1,6 +1,68 @@
 import { toSVGString, toDataURL } from '@kroszborg/rune'
 
 /**
+ * Construct Rune options object from form values
+ */
+export function getRuneOptionsFromValues(values) {
+  const dots = {
+    style: values.dotsStyle,
+    ...(values.useGradient
+      ? {
+          gradient: {
+            type: values.gradientType,
+            rotation: values.gradientRotation,
+            stops: [
+              { offset: 0, color: values.gradientColor1 },
+              { offset: 1, color: values.gradientColor2 },
+            ],
+          },
+        }
+      : { color: values.dotsColor }),
+  }
+
+  const logo = values.logoValue
+    ? {
+        src: values.logoValue,
+        size: values.logoSize,
+        shape: values.logoShape,
+      }
+    : undefined
+
+  const effectiveEcl = values.logoValue && (values.ecl === 'L' || values.ecl === 'M')
+    ? 'H'
+    : values.ecl
+
+  return {
+    value: values.value || 'https://example.com',
+    dots,
+    background: values.backgroundColor,
+    corners: {
+      square: {
+        style: values.squareStyle,
+        ...(values.useGradient ? {} : { color: values.dotsColor }),
+      },
+      dot: {
+        style: values.cornerDotStyle,
+        ...(values.useGradient ? {} : { color: values.dotsColor }),
+      },
+    },
+    logo,
+    ecl: effectiveEcl,
+    margin: values.margin ?? 2,
+  }
+}
+
+/**
+ * Generate a PNG data URL for preview thumbnails or export
+ */
+export async function generateQRCodeDataURL(options, scale = 2) {
+  return await toDataURL(options, {
+    format: 'png',
+    scale,
+  })
+}
+
+/**
  * Triggers a browser download for a blob or data URL
  */
 function triggerDownload(href, filename) {

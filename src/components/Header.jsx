@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { QrCode, Sun, Moon, RotateCcw, Sparkles } from 'lucide-react'
+import { QrCode, Sun, Moon, RotateCcw, Sparkles, FolderOpen } from 'lucide-react'
 import { Button } from './ui/button'
 
-export function Header({ onReset }) {
+export function Header({ onReset, onOpenSaved, activeTitle, onClearActive }) {
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('qr-theme')
@@ -43,13 +43,44 @@ export function Header({ onReset }) {
                 Studio
               </span>
             </div>
-            <p className="text-xs text-muted-foreground hidden sm:block">
-              Professional vector & raster QR code generator
-            </p>
+            {activeTitle ? (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="text-[11px] text-primary font-medium flex items-center gap-1">
+                  Editing: <span className="font-semibold truncate max-w-[140px] sm:max-w-[200px]">{activeTitle}</span>
+                </span>
+                {onClearActive && (
+                  <button
+                    type="button"
+                    onClick={onClearActive}
+                    className="text-muted-foreground hover:text-foreground text-[10px] underline ml-1 cursor-pointer"
+                    title="Unlink from this saved QR"
+                  >
+                    (new)
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground hidden sm:block">
+                Professional vector & raster QR code generator
+              </p>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Saved QR Codes Library Trigger */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onOpenSaved}
+            className="gap-1.5 h-8 px-2.5 font-medium cursor-pointer"
+            title="Browse saved QR codes"
+          >
+            <FolderOpen className="size-3.5 text-primary" />
+            <span className="text-xs">Saved Codes</span>
+          </Button>
+
           <Button
             type="button"
             variant="ghost"

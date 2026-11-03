@@ -8,6 +8,8 @@ import {
   ShieldCheck,
   FileCode,
   Sparkles,
+  CloudUpload,
+  BookmarkCheck,
 } from 'lucide-react'
 import QR from './qr/QR'
 import { Button } from './ui/button'
@@ -17,64 +19,23 @@ import {
   copyPNGToClipboard,
   copySVGToClipboard,
   printQRCode,
+  getRuneOptionsFromValues,
 } from '@/lib/qr-export'
 import { toSVGString } from '@kroszborg/rune'
 import { cn } from '@/lib/utils'
 
-export function PreviewCard({ values, onToast }) {
+export function PreviewCard({
+  values,
+  onToast,
+  onOpenSaveModal,
+  currentSavedId,
+  currentSavedTitle,
+}) {
   const [scale, setScale] = useState(4) // 4x = 1024px
   const [isExporting, setIsExporting] = useState(false)
   const [copiedType, setCopiedType] = useState(null)
 
-  // Construct Rune options object from current values
-  const getRuneOptions = () => {
-    const dots = {
-      style: values.dotsStyle,
-      ...(values.useGradient
-        ? {
-            gradient: {
-              type: values.gradientType,
-              rotation: values.gradientRotation,
-              stops: [
-                { offset: 0, color: values.gradientColor1 },
-                { offset: 1, color: values.gradientColor2 },
-              ],
-            },
-          }
-        : { color: values.dotsColor }),
-    }
-
-    const logo = values.logoValue
-      ? {
-          src: values.logoValue,
-          size: values.logoSize,
-          shape: values.logoShape,
-        }
-      : undefined
-
-    const effectiveEcl = values.logoValue && (values.ecl === 'L' || values.ecl === 'M')
-      ? 'H'
-      : values.ecl
-
-    return {
-      value: values.value || 'https://example.com',
-      dots,
-      background: values.backgroundColor,
-      corners: {
-        square: {
-          style: values.squareStyle,
-          ...(values.useGradient ? {} : { color: values.dotsColor }),
-        },
-        dot: {
-          style: values.cornerDotStyle,
-          ...(values.useGradient ? {} : { color: values.dotsColor }),
-        },
-      },
-      logo,
-      ecl: effectiveEcl,
-      margin: values.margin ?? 2,
-    }
-  }
+  const getRuneOptions = () => getRuneOptionsFromValues(values)
 
   const handleDownloadPNG = async () => {
     try {
@@ -210,8 +171,28 @@ export function PreviewCard({ values, onToast }) {
           )}
         </div>
 
-        {/* Download & Export Section */}
+        {/* Persistence & Export Section */}
         <div className="mt-5 w-full space-y-3 pt-4 border-t border-border/60">
+          {/* Cloud Save / Update Button */}
+          <Button
+            type="button"
+            onClick={onOpenSaveModal}
+            disabled={!values.value}
+            className="w-full h-10 gap-2 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white font-medium shadow-xs cursor-pointer"
+          >
+            {currentSavedId ? (
+              <>
+                <BookmarkCheck className="size-4" />
+                <span>Update Saved QR ({currentSavedTitle || 'Design'})</span>
+              </>
+            ) : (
+              <>
+                <CloudUpload className="size-4" />
+                <span>Save QR Code to Cloud</span>
+              </>
+            )}
+          </Button>
+
           {/* Resolution Selector & Primary Download */}
           <div className="flex items-center gap-2">
             <select
