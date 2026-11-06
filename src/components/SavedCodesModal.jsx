@@ -15,6 +15,7 @@ import {
 import { Button } from './ui/button'
 import { fetchSavedQRCodes, deleteQRCode } from '@/lib/qr-storage'
 import { downloadBatchAsZip } from '@/lib/qr-batch-export'
+import { formatDisplayValue } from '@/lib/qr-parser'
 
 export function SavedCodesModal({
   isOpen,
@@ -325,8 +326,11 @@ export function SavedCodesModal({
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-muted-foreground truncate font-mono mt-0.5">
-                            {item.values?.value || 'Empty content'}
+                          <p
+                            className="text-[11px] text-muted-foreground truncate font-mono mt-0.5"
+                            title={item.values?.value || ''}
+                          >
+                            {formatDisplayValue(item.values?.value)}
                           </p>
                           <div className="flex items-center gap-1 text-[10px] text-muted-foreground/80 mt-1">
                             <Calendar className="size-3" />

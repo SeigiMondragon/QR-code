@@ -3,6 +3,7 @@ import { X, CloudUpload, Loader2, BookmarkCheck, Plus } from 'lucide-react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { formatDisplayValue } from '@/lib/qr-parser'
 
 export function SaveQRModal({
   isOpen,
@@ -67,7 +68,7 @@ export function SaveQRModal({
               id="qr-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={values?.value ? `QR for ${values.value.slice(0, 30)}` : 'e.g. My Website'}
+              placeholder={values?.value ? `QR for ${formatDisplayValue(values.value).slice(0, 30)}` : 'e.g. My Website'}
               disabled={isSaving}
               autoFocus
             />
@@ -77,7 +78,7 @@ export function SaveQRModal({
             <div className="flex justify-between">
               <span>Target Content:</span>
               <span className="font-mono text-foreground font-medium truncate max-w-[200px]">
-                {values?.value || 'Empty'}
+                {formatDisplayValue(values?.value)}
               </span>
             </div>
             <div className="flex justify-between">

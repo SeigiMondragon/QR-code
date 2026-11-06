@@ -9,10 +9,12 @@ import { SaveQRModal } from './components/SaveQRModal'
 import { SavedCodesModal } from './components/SavedCodesModal'
 import { saveQRCode, updateQRCode } from './lib/qr-storage'
 import { getRuneOptionsFromValues, generateQRCodeDataURL } from './lib/qr-export'
+import { cleanWrappingQuotes } from './lib/qr-parser'
 import { Sparkles, SlidersHorizontal } from 'lucide-react'
 
 const defaultValues = {
   value: 'https://example.com',
+  contentType: 'url',
   dotsStyle: 'rounded',
   dotsColor: '#090d16',
   backgroundColor: '#ffffff',
@@ -51,11 +53,39 @@ function App() {
   }, [])
 
   const handleValuesChange = useCallback((newPartialValues) => {
+    setValues((prev) => {
+      const isStyleChange = Object.keys(newPartialValues).some((key) =>
+        [
+          'dotsStyle',
+          'squareStyle',
+          'cornerDotStyle',
+          'dotsColor',
+          'backgroundColor',
+          'useGradient',
+          'gradientColor1',
+          'gradientColor2',
+          'gradientType',
+          'gradientRotation',
+        ].includes(key)
+      )
+      return {
+        ...prev,
+        ...newPartialValues,
+        presetId:
+          newPartialValues.presetId !== undefined
+            ? newPartialValues.presetId
+            : isStyleChange
+            ? 'custom'
+            : prev.presetId,
+      }
+    })
+  }, [])
+
+  const handleContentChange = useCallback((encodedValue, meta = {}) => {
     setValues((prev) => ({
       ...prev,
-      ...newPartialValues,
-      // If user manually customizes styles, mark preset as custom
-      presetId: newPartialValues.presetId !== undefined ? newPartialValues.presetId : 'custom',
+      value: encodedValue,
+      ...meta,
     }))
   }, [])
 
@@ -133,9 +163,12 @@ function App() {
   // Load saved QR Code into Studio for re-editing
   const handleLoadSavedCode = (item) => {
     if (!item?.values) return
+    const rawVal = item.values.value || ''
+    const cleanVal = cleanWrappingQuotes(rawVal)
     setValues({
       ...defaultValues,
       ...item.values,
+      value: cleanVal,
     })
     setCurrentSavedId(item.id)
     setCurrentSavedTitle(item.title || 'Untitled QR')
@@ -194,7 +227,8 @@ function App() {
               </div>
               <ContentTypeTabs
                 value={values.value}
-                onChange={(encodedValue) => handleValuesChange({ value: encodedValue })}
+                contentType={values.contentType}
+                onChange={handleContentChange}
               />
             </div>
 

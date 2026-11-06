@@ -21,6 +21,7 @@ import {
   printQRCode,
   getRuneOptionsFromValues,
 } from '@/lib/qr-export'
+import { cleanWrappingQuotes } from '@/lib/qr-parser'
 import { toSVGString } from '@kroszborg/rune'
 import { cn } from '@/lib/utils'
 
@@ -104,7 +105,8 @@ export function PreviewCard({
     }
   }
 
-  const isUrl = values.value?.startsWith('http://') || values.value?.startsWith('https://')
+  const displayValue = cleanWrappingQuotes(values.value || '')
+  const isUrl = displayValue.startsWith('http://') || displayValue.startsWith('https://')
   const isTransparent = values.backgroundColor === 'transparent'
 
   return (
@@ -159,7 +161,7 @@ export function PreviewCard({
           {isUrl && (
             <div className="mt-2 pt-2 border-t border-border/50 flex justify-end">
               <a
-                href={values.value}
+                href={displayValue}
                 target="_blank"
                 rel="noreferrer noopener"
                 className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
